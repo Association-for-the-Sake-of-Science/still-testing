@@ -17,7 +17,7 @@ module.exports = {
 		const ShutupUserId = message.mentions.users.first().id;
 		let ifUserid = false;
 		//check if the target User is the bot itself. 
-		if (ShutupUserId == 732898098321293403) {
+		if (ShutupUserId == 732898098321293403 && subCommand === 'now') {
 			message.reply(`oops! i can't mute myself!`)
 			return
 		}
@@ -26,7 +26,7 @@ module.exports = {
 			for (i = 0; shutuplist[i] != undefined; i++) {
 				//check if the id already exists
 				if (shutuplist[i] == ShutupUserId) {
-					message.reply(`@${ShutupUserId} is already in shutup mode`)
+					message.reply(`<@${ShutupUserId}> is already in shutup mode`)
 					ifUserid = true;
 				}
 			}
@@ -51,7 +51,7 @@ module.exports = {
 					message.reply(`successfuly retracted the shutup on <@${ShutupUserId}>`)
 				}
 			}
-			if (activestate) { message.reply(`@${ShutupUserId} is not in shutup mode`) }
+			if (ifUserid) { message.reply(`<@${ShutupUserId}> is not in shutup mode`) }
 			console.log(shutuplist)
 		}
 		//list all User in shutup mode 
@@ -63,7 +63,7 @@ module.exports = {
 				const data = [];
 				data.push(`there is currently ${shutuplist.length} User in shutup mode:\n`)
 				for (i = 0; shutuplist[i] != undefined; i++) {
-					data.push(`<@${shutuplist[i]}>\n`)
+					data.push(`<@${shutuplist[i]}>`)
 				}
 				message.channel.send(data);
 			}

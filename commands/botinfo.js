@@ -13,7 +13,7 @@ module.exports = {
         data.push(`\nBot Name: ${config.botName}`)
         data.push(`Bot Description: ${config.description}`)
         data.push(`Bot Version: ${config.version}`)
-        data.push(`Bot Developer: <@${config.developer}>`)
+        data.push(`Bot Main Developer: <@${config.developer}>`)
         data.push(`Bot Github link: ${config.githubLink}`)
         data.push(`Contact: ${config.contact}`)
         message.reply(data);

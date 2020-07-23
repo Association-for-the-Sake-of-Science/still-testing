@@ -57,11 +57,11 @@ Still_testing.once('ready', () => {
 
     //Send hello message to all servers 
     const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
-        for(helloguild of allhelloserver){
+    for(helloguild of allhelloserver){
         if(helloguild.systemChannel != undefined){
-        helloguild.systemChannel.send(helloMessage);
+            helloguild.systemChannel.send(helloMessage);
         }
-      }
+    }
 
     //set activity
     Still_testing.user.setActivity(activityMessage);

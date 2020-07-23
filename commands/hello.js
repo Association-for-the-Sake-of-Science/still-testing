@@ -1,6 +1,4 @@
-//Load discord.js Module 
-const Discord = require('discord.js')
-
+let i = 0;
 module.exports = {
 	name: 'hello',
 	usage: '<hello>',
@@ -12,6 +10,8 @@ module.exports = {
 	//a command that purly existes for testing. It's also a very good template for copying 
 	execute(message, args) {
 		message.channel.send(`hello!`);
-		//some testing stuff here.
+		console.log(`hello from ${message.mentions.users.first()}!`);
+		console.log(args);
+		console.log(`hello from ${message.mentions.users.first().id}!`);
 	}
 };

@@ -7,9 +7,8 @@ const fs = require('fs');
 //Load Sequelize, an object-relational-mapper(ORM) for database usage
 const Sequelize = require('sequelize');
 
-//Load configuration +
+//Load configuration 
 const { prefix, bot_secret_token, bot_id, helloserverid, hellochannelid, helloMessage, activityMessage } = require('./config.json');
-const { error } = require('console');
 
 //create Still Testing Discord client 
 const Still_testing = new Discord.Client()
@@ -23,9 +22,10 @@ const cooldown = new Discord.Collection();
 //dynamically retrieve all commands in the /command directory, filter only javascript files 
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-//log the console log into a .txt file d
-const consoleLog = new console.Console(fs.createWriteStream('./log/logoutput.txt'));
+//log the console log into a .txt file. 'a' means appending (old data will be preserved)
+const consoleLog = new console.Console(fs.createWriteStream('./log/logoutput.txt',{flags: 'a' }));
 consoleLog.log(`/*---------New Console Log startet at ${new Date()}---------*/`);
+
 /*########_Boot_#########*/
 /*-----------------------------Database-----------------------------*/
 //define sqlite database connection info 
@@ -48,6 +48,7 @@ const tempMemory = new Sequelize('sqlite::memory:');
 Still_testing.once('ready', () => {
     //display connect status in 
     console.log("Connected as " + Still_testing.user.tag)
+    consoleLog.log(`Successfuly connected as <@${Still_testing.user.tag}> at ${new Date()}` )
     const helloserver = Still_testing.guilds.cache.get(helloserverid)
     const hellochannel = helloserver.channels.cache.get(hellochannelid);
 
@@ -56,11 +57,11 @@ Still_testing.once('ready', () => {
 
     //Send hello message to all servers 
     const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
-        for(helloguild of allhelloserver){
+    for(helloguild of allhelloserver){
         if(helloguild.systemChannel != undefined){
-        helloguild.systemChannel.send(helloMessage);
+            helloguild.systemChannel.send(helloMessage);
         }
-      }
+    }
 
     //set activity
     Still_testing.user.setActivity(activityMessage);
@@ -155,9 +156,11 @@ Still_testing.on('message', async message => {
     try {
         await command.execute(message, args, sqliteDB, tempMemory);
         console.log(`${message.author} used ${message} with ${args} as arguments`)
+        consoleLog.log(`#LOG <${new Date()}>: ${message.author} used ${message} with ${args} as arguments`);
     }
     catch (error) {
         message.reply(`Error executing command ${message},\n\n   Command:\n     ${message}\n   Error source:\n     ${error}.\n\nI definitly still need some testing`);
+        consoleLog.log(`#ERROR <${new Date()}>: ${error}`);
         console.error(error);
     }
 });

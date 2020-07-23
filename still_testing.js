@@ -7,9 +7,8 @@ const fs = require('fs');
 //Load Sequelize, an object-relational-mapper(ORM) for database usage
 const Sequelize = require('sequelize');
 
-//Load configuration +
+//Load configuration 
 const { prefix, bot_secret_token, bot_id, helloserverid, hellochannelid, helloMessage, activityMessage } = require('./config.json');
-const { error } = require('console');
 
 //create Still Testing Discord client 
 const Still_testing = new Discord.Client()

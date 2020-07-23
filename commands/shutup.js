@@ -57,7 +57,7 @@ module.exports = {
 		}
 		//remove the user from shutuplist array 
 		else if (subCommand === 'withdraw' || subCommand === 'wd') {
-			let ifUserid = false;
+			ifUserid = false;
 			for (i = 0; shutuplist[i] != undefined; i++) {
 				if (shutuplist[i] == ShutupUserId) {
 					shutuplist.splice(i, 1);
@@ -99,5 +99,5 @@ module.exports = {
 					console.error(err);
 				})
 		}
-	},
+	}
 }

@@ -87,5 +87,6 @@ module.exports = {
 
         //send the retrived data into server chat
         message.channel.send(data, { split: true });
-    }
+        
+    },
 }

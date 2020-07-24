@@ -55,14 +55,14 @@ Still_testing.once('ready', () => {
     //hellochannel.send(helloMessage);
 
     //Send hello message to all servers 
-    const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
+    /*const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
         for(helloguild of allhelloserver){
         if(helloguild.systemChannel != undefined){
         helloguild.systemChannel.send(helloMessage);
         }
       }
 
-    //set activity
+    //set activity*/
     Still_testing.user.setActivity(activityMessage);
 
 
@@ -78,6 +78,7 @@ for (const file of commandFiles) {
 }
 
 const shutupcheck = Still_testing.commands.get('shutup');
+
 /*########_Main_Programm_#########*/
 
 //Listening Message 
@@ -116,7 +117,7 @@ Still_testing.on('message', async message => {
 
     //check if the given command is server only
     if (command.guildOnly && message.channel.type !== 'text') {
-        return message.reply('oops! this command is a server only command :O');
+        return message.reply('oops! this command is a server only command   ( 0 _ 0 )');
     }
 
     //check for all commands with args option set to true if the command is empty. 

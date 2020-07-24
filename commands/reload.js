@@ -1,3 +1,4 @@
+
 module.exports = {
 	name: 'reload',
 	usage: '<command>',
@@ -16,6 +17,9 @@ module.exports = {
 
 		if (!command) return message.channel.send(`There is no command with name or alias \`${commandName}\`, ${message.author}!`);
 
+		//because of the global variable in command shutup, reloading it will breake the command.
+		// if(command.name == 'shutup'){message.reply('command shutup is not reloadable because of the global variable in command shutup, reloading it will breake the command. Please restart the bot to reload it.');return;}
+		
 		//delete the old command instance 
 		delete require.cache[require.resolve(`./${command.name}.js`)];
 

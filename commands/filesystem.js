@@ -58,13 +58,13 @@ module.exports = {
                         console.log(err)
                     });
                 //for testing
-                console.log(`AskTagsAnswer:${Tags}`);
+                console.log(`AskTagsAnswer:${Tags}`)
                 //get exist tags and compare 
                 const existTags = await this.tagInfo(tagTable);
                 //create tags when no tags was found 
                 if (existTags == 'No tags set.') {
                     await message.channel.send(`There is currently no tag created.`)
-                    for (var i = 0; Tags[i] != undefined; i++) {
+                    for (var i = 0; i < Tags.length; i++) {
                         await this.createTag(message, tagTable, Tags[i]);
                     };
                 }
@@ -74,7 +74,7 @@ module.exports = {
                     var tagDifference = Tags.filter(tag => existTags.indexOf(tag) === -1);
                     console.log(`DiffTag:${tagDifference}`)
                     if (tagDifference != undefined) {
-                        for (var i = 0; tagDifference[i] != undefined; i++) {
+                        for (var i = 0; i < tagDifference.length; i++) {
                             await this.createTag(message, tagTable, tagDifference[i]);
                         };
                     }
@@ -85,7 +85,7 @@ module.exports = {
                 newDocName = newDoc.get('documentName')
                 console.log(`${newDocName} created! ID: ${newDocId}`)
                 //tag the documents into db 
-                for (var i = 0; Tags[i] != undefined; i++) {
+                for (var i = 0; i < Tags.length; i++) {
                     await this.documentAddTag(documentTagTable, newDocId, Tags[i]).catch(err => { console.log(err) });
                 }
                 message.channel.send(`successfuly added ${Tags} to the document ${newDocName},document ID:${newDocId}`)
@@ -128,22 +128,23 @@ module.exports = {
                 const searchTag = args.filter(Rawtag => Rawtag.startsWith(tagPrefix)).map(Rawtag => Rawtag.slice(1));
                 //if tags are given, find all documents with those tags and send it 
                 if (searchTag.length) {
-                    for (var i = 0; searchTag[i] != undefined; i++) {
+                    for (var i = 0; i < searchTag.length; i++) {
                         const taggedDocument = await documentTagTable.findAll({where:{ tagName: searchTag[i] } });
                         const documentIdString = taggedDocument.map(t => t.taggedDocumentsId);
                         console.log(documentIdString)
-                        for (let e = 0; documentIdString[e] != undefined; e++) {
+                        for (let e = 0; e < documentIdString.length; e++) {
                             const documents = await documentTable.findOne({where:{ messageId: documentIdString[e] } });
                             console.log(documents)
                             const dsAttachment = new Discord.MessageAttachment(documents.get('documentLink'));
-                            await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
-                            await message.reply(dsAttachment);
-                        }
+                        await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
+                        await message.reply(dsAttachment);
+                        };
                     }
                     break;
                 } 
                 //else check for keyword, get documents info and send it
                 else {
+                    //keword check
                     const searchArgument = (`%${args.toString()}%`)
                     const searchResult = await documentTable.findAll({
                         where: {
@@ -155,6 +156,7 @@ module.exports = {
                     }).catch(err => { console.log(`search error: ${err}`) })
                     findResult = searchResult.map(result => { return result; });
                     console.log(searchResult)
+                    //send documents 
                     if (findResult.length > 0) {
                         for (var i = 0; i < findResult.length; i++) {
                             const dsAttachment = new Discord.MessageAttachment(findResult[i].get('documentLink'));
@@ -185,14 +187,18 @@ module.exports = {
                 }
                 break;
             case 'tag':
+                //check if argument is provided 
                 if (!args.length) return;
                 const subsubCommand = args.shift().toLowerCase();
+                //scwich the subcommand cases 
                 switch (subsubCommand) {
                     case 'show' || 'all':
+                        //display all tags 
                         const tagString = await this.tagInfo(tagTable);
                         message.channel.send(`List of tags: ${tagString}`)
                         break;
                     case 'new' || 'create':
+                        //create new tag
                         if (!args.length) {
                             message.channel.send(`Please write down the name of the Tag that you want to create!`)
                             break;
@@ -216,7 +222,7 @@ module.exports = {
                 return;
         }
     },
-    //
+    //Init the db modle where the document info will be stored 
     async documentTableInit(sqliteDB) {
         const documentTable = sqliteDB.define('document', {
             documentName: {
@@ -249,6 +255,7 @@ module.exports = {
         await documentTable.sync().catch(err => console.log(`InitDocumentTabelError:${err}`));
         return documentTable;
     },
+    //Init the db modle where the tags will be stored 
     async tagTableInit(sqliteDB) {
         const tagTable = sqliteDB.define('tagTable', {
             tagName: {
@@ -263,6 +270,7 @@ module.exports = {
         await tagTable.sync().catch(err => console.log(`InitTagTabelError:${err}`));
         return tagTable;
     },
+    //Init the db modle where the document tags will be stored  
     async documentTagTableInit(sqliteDB) {
         const documentTagTable = sqliteDB.define('documentTagTable', {
             tagName: {

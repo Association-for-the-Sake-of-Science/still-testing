@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['rese'],
     guildOnly: true,
     cooldown: 10,
-    category: 'Utility',
+    category: 'Useless Utility',
     execute(message, args) {
         const countnumbers = args.shift().toLowerCase();
         const sendcommand = args.join(' ');

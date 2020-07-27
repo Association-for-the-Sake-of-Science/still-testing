@@ -9,7 +9,7 @@ module.exports = {
     description: 'ich bin dumm',
     args: false,
     guildOnly: true,
-    category: 'Utility',
+    category: 'Fun',
     async execute(message, args, sqliteDB) {
         const voiceChannel = message.member.voice.channel;
         //check if user is in a voice channel

@@ -12,7 +12,7 @@ const tagPrefix = '#'
 module.exports = {
     name: 'filesystem',
     usage: '<hello>',
-    description: 'get your files up and ready!\n ',
+    description: 'get your files up and ready! ',
     aliases: ['fs'],
     args: false,
     guildOnly: false,
@@ -26,7 +26,7 @@ module.exports = {
         //switch from if/else to switch statement for better preformence 
         switch (subCommand) {
             //Import a file 
-            case 'new' || 'touch':
+            case 'new': case 'touch':
                 //get the attachment from the user
                 const attachment = message.attachments.map(attachment => { return attachment; });
                 if (attachment.length == 0) {
@@ -90,7 +90,7 @@ module.exports = {
                 }
                 message.channel.send(`successfuly added ${Tags} to the document ${newDocName},document ID:${newDocId}`)
                 break;
-            case 'ls' || 'show':
+            case 'ls': case 'show':
                 const data = [];
                 data.push(`Uploaded Files:`)
                 //get all id of uploaded documents into an array 
@@ -123,25 +123,25 @@ module.exports = {
                 break;
             case 'search':
                 //check if argument is provided 
-                if(!args.length){message.reply('required keywords'); break;}
+                if (!args.length) { message.reply('required keywords'); break; }
                 //find and get mentiond tags into array 
                 const searchTag = args.filter(Rawtag => Rawtag.startsWith(tagPrefix)).map(Rawtag => Rawtag.slice(1));
                 //if tags are given, find all documents with those tags and send it 
                 if (searchTag.length) {
                     for (var i = 0; i < searchTag.length; i++) {
-                        const taggedDocument = await documentTagTable.findAll({where:{ tagName: searchTag[i] } });
+                        const taggedDocument = await documentTagTable.findAll({ where: { tagName: searchTag[i] } });
                         const documentIdString = taggedDocument.map(t => t.taggedDocumentsId);
                         console.log(documentIdString)
                         for (let e = 0; e < documentIdString.length; e++) {
-                            const documents = await documentTable.findOne({where:{ messageId: documentIdString[e] } });
+                            const documents = await documentTable.findOne({ where: { messageId: documentIdString[e] } });
                             console.log(documents)
                             const dsAttachment = new Discord.MessageAttachment(documents.get('documentLink'));
-                        await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
-                        await message.reply(dsAttachment);
+                            await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
+                            await message.reply(dsAttachment);
                         };
                     }
                     break;
-                } 
+                }
                 //else check for keyword, get documents info and send it
                 else {
                     //keword check
@@ -170,7 +170,7 @@ module.exports = {
                 }
 
                 break;
-            case 'delete' || 'del' || 'remove':
+            case 'delete': case 'del': case 'remove':
                 //get the target document id  
                 deleteId = args.shift().toLowerCase();
                 //get the target document info  
@@ -192,12 +192,12 @@ module.exports = {
                 const subsubCommand = args.shift().toLowerCase();
                 //scwich the subcommand cases 
                 switch (subsubCommand) {
-                    case 'show' || 'all':
+                    case 'show': case 'all':
                         //display all tags 
                         const tagString = await this.tagInfo(tagTable);
                         message.channel.send(`List of tags: ${tagString}`)
                         break;
-                    case 'new' || 'create':
+                    case 'new': case 'create':
                         //create new tag
                         if (!args.length) {
                             message.channel.send(`Please write down the name of the Tag that you want to create!`)

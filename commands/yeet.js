@@ -4,7 +4,7 @@ module.exports = {
     description: 'yeet someone',
     args: false,
     guildOnly: true,
-    category: 'fun',
+    category: 'Fun',
     execute(message, args) {
         //check if a user is mentioned
         if (!message.mentions.users.size) {

@@ -1,3 +1,6 @@
+//Load discord.js Module 
+const Discord = require('discord.js')
+//Load config
 const config = require('./../config.json');
 
 module.exports = {
@@ -16,6 +19,6 @@ module.exports = {
         data.push(`Bot Developer: <@${config.developer}>`)
         data.push(`Bot Github link: ${config.githubLink}`)
         data.push(`Contact: ${config.contact}`)
-        message.reply(data);
+        message.reply(data,config.githubLink);
     }
 };

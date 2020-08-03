@@ -56,14 +56,14 @@ Still_testing.once('ready', () => {
     //hellochannel.send(helloMessage);
 
     //Send hello message to all servers 
-    /*const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
+    const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
         for(helloguild of allhelloserver){
         if(helloguild.systemChannel != undefined){
         helloguild.systemChannel.send(helloMessage);
         }
       }
 
-    //set activity*/
+    //set activity
     Still_testing.user.setActivity(activityMessage);
 
 
@@ -100,9 +100,11 @@ Still_testing.on('message', async message => {
         // Send Helloworld
         message.channel.send('Helloworld');
     }
-    else if (message.content.startsWith('Hi')) {
+    //auto delete ass bot online message
+    /*else if (message.content.startsWith('Hi')) {
         message.delete();
-    }
+    }*/
+
     /*-----------------------------dynamic_Prefix Commands-----------------------------*/
     //Exit early if the message starts without prefix 
     //add || message.author.bot after prefix for excluding bot messages 

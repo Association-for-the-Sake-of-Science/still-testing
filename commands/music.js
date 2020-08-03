@@ -3,10 +3,12 @@ const ytdl = require('ytdl-core-discord');
 //Load ytsr(you-tube-search-result). Npmjs :https://www.npmjs.com/package/ytsr
 const ytsr = require('ytsr');
 //using ffmpeg from https://www.ffmpeg.org/
-
+const Sequelize = require('sequelize');
+//Define prefix of Playlist
+const playlistPrefix = '#'
 module.exports = {
     name: 'music',
-    usage: '   -play: %<music>(m) <play>(p) <name of the song>\n    -search: %<music>(m) <search>(s) <name of the song>', 
+    usage: '   -play: %<music>(m) <play>(p) <name of the song>\n    -search: %<music>(m) <search>(s) <name of the song>    -queue: %<music>(m) <queue>(q)    -now playing: %<music>(m) <np>',
     description: 'like every other music bot. ytdl and ytsr based',
     args: false,
     guildOnly: true,
@@ -25,36 +27,91 @@ module.exports = {
         if (this.musicSearchState == true) return;
         //get the subcommand 
         const subcommand = args.shift().toLowerCase();
+        //init DB
+        const playlistSongTable = await this.playlistSongTableInit(sqliteDB);
+        const playlistTable = await this.playlistTableInit(sqliteDB);
         switch (subcommand) {
             case 'play': case 'p':
                 //get song name 
-                const playArgument = args.join(' ');
-                if (playArgument) {
+                const subcommand = args[0];
+                if (subcommand == "playlist" || "pl" || "plist") {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
-                    //get ytsr search results 
-                    let searchResult = await this.searchyt(message, playArgument, false)
-                    //get the info of the song
-                    var songInfo = { url: searchResult.items[0].link, title: searchResult.items[0].title };
-                    this.songQueue.push(songInfo)
-                    //if there is no music in the queue, play the song. Else queue the song
-                    console.log(this.songQueue);
-                    if (this.songQueue[1] == undefined) {
-                        var connection = await voiceChannel.join();
-                        if (connection) {
-                            message.channel.send(`Joined channel \`${message.member.voice.channel.name}\``)
-                        } else {
-                            message.channel.send('error joining channel');
+                    if (!voiceChannel) break;
+
+                    if (!args[1]) return;
+                    if (args[1].startsWith(playlistPrefix) == true) {
+                        const playlistName = args[1].substring(playlistPrefix.length)
+                        console.log(playlistName);
+                        const playlist = await playlistTable.findOne({ where: { playlist: playlistName } });
+                        if (!playlist) {
+                            message.channel.send("there is no such playlist. please try again.")
                             return;
+                        } else {
+                            const oldSongQueue = this.songQueue.length;
+                            const playlistSongs = (await playlistSongTable.findAll({ where: { playlist: playlistName } })).map(t => t.songName);
+                            const data = [];
+                            data.push(`loading playlist \`${playlistPrefix}${playlistName}\``)
+                            for (let i = 0; playlistSongs[i] !== undefined; i++) {
+                                console.log(playlistSongs[i]);
+                                const song = await playlistSongTable.findOne({ where: { songName: playlistSongs[i] } });
+                                const songs = { url: song.songUrl, title: song.songName, duration: song.songDuration }
+                                this.songQueue.push(songs)
+                                data.push(`-${song.songName}, [${song.songDuration}]`)
+                            }
+                            data.push(`successfuly loaded playlist into queue`)
+                            message.channel.send(data);
+                            console.log("od1");
+                            console.log(oldSongQueue);
+                            if (oldSongQueue == false) {
+                                var connection = await voiceChannel.join();
+                                if (connection) {
+                                    message.channel.send(`Joined channel \`${message.member.voice.channel.name}\``)
+                                } else {
+                                    message.channel.send('error joining channel');
+                                    return;
+                                }
+                                await this.play(message, voiceChannel, connection)
+                            }else{
+                                message.channel.send("queued songs")
+                            }
                         }
-                        await this.play(message, voiceChannel, connection)
                     }
                     else {
-                        message.channel.send(`queued ${songInfo.title}`)
+                        message.channel.send(`please enter a playlist that starts with ${playlistPrefix}.`)
                     }
+
                 }
                 else {
-                    message.channel.send("you need to give me a song name in order to let me play it!")
+                    const playArgument = args.join(' ');
+                    if (playArgument) {
+                        //check channel and perms, return voicechannel for later connection
+                        let voiceChannel = await this.reqCheck(message)
+                        if (!voiceChannel) break;
+                        //get ytsr search results 
+                        let searchResult = await this.searchyt(message, playArgument, false)
+                        //get the info of the song
+                        var songInfo = { url: searchResult.items[0].link, title: searchResult.items[0].title, duration: searchResult.items[0].duration };
+                        this.songQueue.push(songInfo)
+                        //if there is no music in the queue, play the song. Else queue the song
+                        console.log(this.songQueue);
+                        if (this.songQueue[1] == undefined) {
+                            var connection = await voiceChannel.join();
+                            if (connection) {
+                                message.channel.send(`Joined channel \`${message.member.voice.channel.name}\``)
+                            } else {
+                                message.channel.send('error joining channel');
+                                return;
+                            }
+                            await this.play(message, voiceChannel, connection)
+                        }
+                        else {
+                            message.channel.send(`queued ${songInfo.title}`)
+                        }
+                    }
+                    else {
+                        message.channel.send("you need to give me a song name in order to let me play it!")
+                    }
                 }
                 break;
             case 'stop':
@@ -63,6 +120,8 @@ module.exports = {
                     return message.channel.send(
                         "You have to be in a voice channel to stop the music!"
                     );
+                this.songQueue = [];
+                message.member.voice.channel.leave();
                 break;
             case 'search': case 's':
                 //get search argument 
@@ -70,6 +129,7 @@ module.exports = {
                 if (searchArgument) {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
+                    if (!voiceChannel) break;
                     //get ytsr search results 
                     let searchResult = await this.searchyt(message, searchArgument, true)
 
@@ -89,7 +149,7 @@ module.exports = {
                                 }
                                 //check if user's responce is valid 
                                 const number = parseInt(collected.first().content);
-                                if (number < searchLimit) {
+                                if (number <= searchLimit && number !== 0) {
                                     return parseInt(collected.first().content);
                                 } else {
                                     message.channel.send(`please enter a valid number under or equal to ${searchLimit}`)
@@ -105,7 +165,7 @@ module.exports = {
                     //check if user canceled the search 
                     if (Userchoice == "cancel") break;
                     //set the song info
-                    var songInfo = { url: searchResult.items[Userchoice - 1].link, title: searchResult.items[Userchoice - 1].title };
+                    var songInfo = { url: searchResult.items[Userchoice - 1].link, title: searchResult.items[Userchoice - 1].title, duration: searchResult.items[Userchoice - 1].duration };
                     this.songQueue.push(songInfo)
                     //if there is no music in the queue, play the song. Else queue the song
                     console.log(this.songQueue);
@@ -127,6 +187,140 @@ module.exports = {
                     message.channel.send("you need to give me a song name in order to let me play it!")
                 }
                 break;
+            case "queue": case "q":
+                //check if there is a song in the queue 
+                if (this.songQueue[0] == undefined) {
+                    message.channel.send("there is currently no song playing!");
+                } else {
+                    //display all the songs in the queue 
+                    const data = [];
+                    const currentQueue = this.songQueue;
+                    data.push(`Songs in the Queue \:page_facing_up:`);
+                    console.log(currentQueue[0]);
+                    for (let i = 0; currentQueue[i] !== undefined; i++) {
+                        const num = i + 1;
+                        data.push(`Queue Position ${num}: \`${currentQueue[i].title}\`  [${currentQueue[i].duration}]`);
+                    }
+                    message.channel.send(data);
+                }
+                break;
+            case "np":
+                //check if there is a song in the queue 
+                if (this.songQueue[0] == undefined) {
+                    message.channel.send("there is currently no song playing!");
+                } else {
+                    //display the first song in the queue 
+                    const currentQueue = this.songQueue;
+                    message.channel.send(`Now Playing:\n  \`${currentQueue[0].title}\`  [${currentQueue[0].duration}]`);
+                    message.channel.send(currentQueue[0].url);
+                }
+                break;
+
+            case "playlistadd": case "padd": case "pa":
+                var givenPlaylists = (args.filter(RawPlaylist => RawPlaylist.startsWith(playlistPrefix)).map(RawPlaylist => RawPlaylist.slice(1)))[0];
+                if (!givenPlaylists) {
+                    message.channel.send(`please enter a playist name with prefix \`${playlistPrefix}\`.`)
+                    while (!givenPlaylists) {
+                        givenPlaylists = await message.channel.awaitMessages(response => response.author.id === message.author.id, { max: 1 })
+                            .then(collected => {
+                                //check if user want to cancel search 
+                                if (collected.first().content == "cancel") {
+                                    message.channel.send('\:white_check_mark: successfuly canceled');
+                                    return "cancel";
+                                }
+                                //check if user's responce is valid 
+                                if (collected.first().content.startsWith(playlistPrefix) == true) {
+                                    console.log(collected);
+                                    return collected.first().content.substring(playlistPrefix.length)
+                                } else {
+                                    message.channel.send(`please enter a playlist name with prefix${playlistPrefix}`)
+                                    return;
+                                }
+                            })
+                            .catch(err => {
+                                console.log(err)
+                            });
+                    }
+                }
+                if (givenPlaylists == "cancel") return;
+                const dbPlaylist = await playlistTable.findOne({ where: { playlist: givenPlaylists } });
+                if (dbPlaylist == undefined) {
+                    await this.newPlaylist(message, playlistTable, givenPlaylists)
+                }
+                let searchName;
+                while (searchName !== "leave") {
+                    message.channel.send("enter a song name to search and add it into the playlist. Type leave to exit.")
+                    searchName = await message.channel.awaitMessages(response => response.author.id === message.author.id, { max: 1 })
+                        .then(collected => {
+                            //check if user want to cancel search 
+                            if (collected.first().content == "leave") {
+                                message.channel.send('\:white_check_mark: exit');
+                            }
+                            return collected.first().content;
+                        })
+                        .catch(err => {
+                            console.log(err)
+                        });
+                    if (searchName == "leave") break;
+                    const searchResult = await this.searchyt(message, searchName, true)
+                    this.musicSearchState = true;
+                    //wait for the user to chose the version to play 
+                    const searchLimit = (await this.getsearchoptions()).limit;
+                    //create userchoice and wait for user to choose a version of the song 
+                    let Userchoice;
+                    while (!Userchoice) {
+                        Userchoice = await message.channel.awaitMessages(response => response.author.id === message.author.id, { max: 1 })
+                            .then(collected => {
+                                //check if user want to cancel search 
+                                if (collected.first().content == "cancel") {
+                                    message.channel.send('\:white_check_mark: successfuly canceled');
+                                    return "cancel";
+                                }
+                                //check if user's responce is valid 
+                                const number = parseInt(collected.first().content);
+                                if (number <= searchLimit && number !== 0) {
+                                    return parseInt(collected.first().content);
+                                } else {
+                                    message.channel.send(`please enter a valid number under or equal to ${searchLimit}`)
+                                    return;
+                                }
+                            })
+                            .catch(err => {
+                                console.log(err)
+                            });
+                    }
+                    //set the search state to false to reenable music command 
+                    this.musicSearchState = false;
+                    //check if user canceled the search 
+                    if (Userchoice !== "cancel") {
+                        //set the song info
+                        const psongInfo = searchResult.items[Userchoice - 1];
+                        console.log(psongInfo);
+                        await this.newPlaylistSong(message, playlistSongTable, givenPlaylists, psongInfo)
+                    }
+                }
+                break;
+            case 'playlistinfo': case 'playlisti':
+                const data = [];
+                data.push(`Songs:`)
+                //get all id of uploaded documents into an array 
+                const songList = await playlistSongTable.findAll({ attributes: ['songName'] });
+                console.log(songList);
+                const songArray = songList.map(t => t.songName)
+                if (songArray.length) {
+                    const songPlaylist = songList.map(t => t.playlist).join();
+                    const songDescription = songList.map(t => t.playlist).join();
+                    for (var i = 0; i < songArray.length; i++) {
+                        //get brief information from each document
+                        data.push(`- Name :${songArray[i]}     ${songDescription[i]}    in Playlist ${songPlaylist[i]}`)
+                    };
+                    //send the retrived info
+                    message.channel.send(data);
+                } else {
+                    message.channel.send('there is currently no songs in any playlist.');
+                }
+                break;
+
             default:
         }
     },
@@ -156,19 +350,20 @@ module.exports = {
     //search given song name or whatever in youtube using ytsr 
     async searchyt(message, playArgument, state) {
         var options = await this.getsearchoptions();
+        console.log(options);
         const limit = options.limit;
         const searchResult = await ytsr(playArgument, options).catch(err => { console.log(err); })
         console.log(searchResult);
         const data = [];
-        data.push(`**Search results:**\n`);
-        //for testing
-        if (state) {
+        //check if need to list all the songs  
+        if (state == true) {
+            data.push(`**Search results:**\n`);
             for (let i = 0; i < limit; i++) {
                 const num = i + 1;
-                data.push(`${num}.  -  ${searchResult.items[i].title}`);
+                data.push(`\`${num}\`.  -  ${searchResult.items[i].title}  [${searchResult.items[i].duration}]`);
             }
+            data.push('\nType a number to chose a song, Type \`cancel\` to exit')
         }
-        data.push('\nType a number to chose a song, Type \`cancel\` to exit')
         message.channel.send(data)
         return searchResult;
     },
@@ -200,6 +395,103 @@ module.exports = {
         catch (err) {
             console.log(err);
             return
+        }
+    },
+    async playlistSongTableInit(sqliteDB) {
+        const playlistSongTable = sqliteDB.define('playlistSongTable', {
+            songName: {
+                unique: false,
+                type: Sequelize.STRING
+            },
+            songUrl: {
+                unique: false,
+                type: Sequelize.STRING
+            },
+            songDuration: {
+                unique: false,
+                type: Sequelize.STRING
+            },
+            songDescription: {
+                type: Sequelize.STRING,
+                allowNull: false,
+                unique: false
+            },
+            playlist: {
+                unique: false,
+                type: Sequelize.STRING
+            },
+        });
+        //sync with the database 
+        await playlistSongTable.sync().catch(err => console.log(`InitplaylistSongTabelError:${err}`));
+        return playlistSongTable;
+    },
+    async playlistTableInit(sqliteDB) {
+        const playlistTable = sqliteDB.define('playlistTable', {
+            playlist: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+            playlistDescription: {
+                type: Sequelize.STRING,
+            },
+        });
+        //sync with the database 
+        await playlistTable.sync().catch(err => console.log(`InitPlaylistTabelError:${err}`));
+        return playlistTable;
+    },
+    async newPlaylist(message, playlistSongTable, playlistName) {
+        var description;
+        message.channel.send(`please enter some description about playlist ${playlistName}`)
+        while (!description) {
+            description = await message.channel.awaitMessages(response => response.author.id === message.author.id, { max: 1 })
+                .then(collected => {
+                    //check if user's responce is valid 
+                    return collected.first().content;
+                })
+                .catch(err => {
+                    console.log(err)
+                });
+        }
+        try {
+            //log event in console
+            console.log(`create playlist:${playlistName},${description}`)
+            //create new Tag model in db
+            const playlist = await playlistSongTable.create({
+                playlist: playlistName,
+                playlistDescription: description,
+            });
+            message.channel.send(`Playlist ${playlistPrefix}${playlist.get('playlist')} added.`);
+        }
+        catch (e) {
+            if (e.name === 'SequelizeUniqueConstraintError') {
+                message.reply('That playlist already exists.');
+            }
+            else {
+                message.reply('Something went wrong with adding a playlist.');
+                console.log(e);
+                return;
+            }
+        }
+    },
+    async newPlaylistSong(message, playlistSongTable, playlistName, songInfo) {
+        const ifalready = await playlistSongTable.findOne({ where: { songName: songInfo.title, playlist: playlistName } });
+        if (!ifalready) {
+            const newSong = await playlistSongTable.create({
+                songName: songInfo.title,
+                songUrl: songInfo.link,
+                songDuration: songInfo.duration,
+                songDescription: songInfo.description,
+                playlist: playlistName,
+            }).catch(err => {
+                console.error(err);
+            });
+            console.log("ns" + newSong);
+            message.channel.send(`added ${newSong.songName} to ${newSong.playlist}.`)
+            return newSong;
+        }
+        else {
+            message.channel.send(`that song already exists`)
+            return;
         }
     },
 }

@@ -137,7 +137,7 @@ module.exports = {
                             console.log(documents)
                             const dsAttachment = new Discord.MessageAttachment(documents.get('documentLink'));
                             await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
-                            await message.reply(dsAttachment);
+                            await message.channel.send(dsAttachment);
                         };
                     }
                     break;

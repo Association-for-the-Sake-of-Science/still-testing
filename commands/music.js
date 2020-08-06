@@ -8,7 +8,7 @@ const Sequelize = require('sequelize');
 const playlistPrefix = '#'
 module.exports = {
     name: 'music',
-    usage: '   -play: %<music>(m) <play>(p) <name of the song>\n    -search: %<music>(m) <search>(s) <name of the song>    -queue: %<music>(m) <queue>(q)    -now playing: %<music>(m) <np>',
+    usage: '   -play: %<music>(m) <play>(p) <name of the song>\n    -search: %<music>(m) <search>(s) <name of the song>\n    -queue: %<music>(m) <queue>(q)\n    -now playing: %<music>(m) <np>\n  -create playlist/add new song: %<music>(m) <playlistadd>(pa) #<playlistname>\n -show playlists: %<music>(m) <playlistinfo>(pi)\n -play playlist: %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>',
     description: 'like every other music bot. ytdl and ytsr based',
     args: false,
     guildOnly: true,
@@ -38,22 +38,25 @@ module.exports = {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
                     if (!voiceChannel) break;
-
-                    if (!args[1]) return;
+                    //check if a command/songName is given
+                    if (!args[1]) {
+                        message.channel.send("you need to give me a song name in order to let me play it!");
+                        return;
+                    }
+                    //check if user want to play a playlist
                     if (args[1].startsWith(playlistPrefix) == true) {
                         const playlistName = args[1].substring(playlistPrefix.length)
-                        console.log(playlistName);
                         const playlist = await playlistTable.findOne({ where: { playlist: playlistName } });
                         if (!playlist) {
                             message.channel.send("there is no such playlist. please try again.")
                             return;
                         } else {
+                            //push the song form db into queue
                             const oldSongQueue = this.songQueue.length;
                             const playlistSongs = (await playlistSongTable.findAll({ where: { playlist: playlistName } })).map(t => t.songName);
                             const data = [];
-                            data.push(`loading playlist \`${playlistPrefix}${playlistName}\``)
+                            data.push(`**loading playlist** \`${playlistPrefix}${playlistName}\``)
                             for (let i = 0; playlistSongs[i] !== undefined; i++) {
-                                console.log(playlistSongs[i]);
                                 const song = await playlistSongTable.findOne({ where: { songName: playlistSongs[i] } });
                                 const songs = { url: song.songUrl, title: song.songName, duration: song.songDuration }
                                 this.songQueue.push(songs)
@@ -61,8 +64,7 @@ module.exports = {
                             }
                             data.push(`successfuly loaded playlist into queue`)
                             message.channel.send(data);
-                            console.log("od1");
-                            console.log(oldSongQueue);
+                            //play the song if there is no song playing.
                             if (oldSongQueue == false) {
                                 var connection = await voiceChannel.join();
                                 if (connection) {
@@ -72,7 +74,7 @@ module.exports = {
                                     return;
                                 }
                                 await this.play(message, voiceChannel, connection)
-                            }else{
+                            } else {
                                 message.channel.send("queued songs")
                             }
                         }
@@ -80,7 +82,6 @@ module.exports = {
                     else {
                         message.channel.send(`please enter a playlist that starts with ${playlistPrefix}.`)
                     }
-
                 }
                 else {
                     const playArgument = args.join(' ');
@@ -94,7 +95,6 @@ module.exports = {
                         var songInfo = { url: searchResult.items[0].link, title: searchResult.items[0].title, duration: searchResult.items[0].duration };
                         this.songQueue.push(songInfo)
                         //if there is no music in the queue, play the song. Else queue the song
-                        console.log(this.songQueue);
                         if (this.songQueue[1] == undefined) {
                             var connection = await voiceChannel.join();
                             if (connection) {
@@ -108,9 +108,6 @@ module.exports = {
                         else {
                             message.channel.send(`queued ${songInfo.title}`)
                         }
-                    }
-                    else {
-                        message.channel.send("you need to give me a song name in order to let me play it!")
                     }
                 }
                 break;
@@ -196,7 +193,6 @@ module.exports = {
                     const data = [];
                     const currentQueue = this.songQueue;
                     data.push(`Songs in the Queue \:page_facing_up:`);
-                    console.log(currentQueue[0]);
                     for (let i = 0; currentQueue[i] !== undefined; i++) {
                         const num = i + 1;
                         data.push(`Queue Position ${num}: \`${currentQueue[i].title}\`  [${currentQueue[i].duration}]`);
@@ -230,7 +226,6 @@ module.exports = {
                                 }
                                 //check if user's responce is valid 
                                 if (collected.first().content.startsWith(playlistPrefix) == true) {
-                                    console.log(collected);
                                     return collected.first().content.substring(playlistPrefix.length)
                                 } else {
                                     message.channel.send(`please enter a playlist name with prefix${playlistPrefix}`)
@@ -295,24 +290,23 @@ module.exports = {
                     if (Userchoice !== "cancel") {
                         //set the song info
                         const psongInfo = searchResult.items[Userchoice - 1];
-                        console.log(psongInfo);
                         await this.newPlaylistSong(message, playlistSongTable, givenPlaylists, psongInfo)
                     }
                 }
                 break;
-            case 'playlistinfo': case 'playlisti':
+            case 'playlistinfo': case 'playlisti': case 'pli':
+                let playlist = args.shift.toLowerCase
                 const data = [];
                 data.push(`Songs:`)
                 //get all id of uploaded documents into an array 
                 const songList = await playlistSongTable.findAll({ attributes: ['songName'] });
-                console.log(songList);
                 const songArray = songList.map(t => t.songName)
+                console.log(songArray);
                 if (songArray.length) {
-                    const songPlaylist = songList.map(t => t.playlist).join();
-                    const songDescription = songList.map(t => t.playlist).join();
-                    for (var i = 0; i < songArray.length; i++) {
-                        //get brief information from each document
-                        data.push(`- Name :${songArray[i]}     ${songDescription[i]}    in Playlist ${songPlaylist[i]}`)
+                    for (var i = 0; songArray[i] !== undefined; i++) {
+                        const song = await playlistSongTable.findOne({ where: { songName: songArray[i] } });
+                        //get brief inforOnemation from each document
+                        data.push(`- Name :${song.songName}     ${song.songDuration}    in Playlist ${playlistPrefix}${song.playlist}.`)
                     };
                     //send the retrived info
                     message.channel.send(data);
@@ -320,7 +314,61 @@ module.exports = {
                     message.channel.send('there is currently no songs in any playlist.');
                 }
                 break;
-
+            case 'skip':
+                if (this.songQueue[0] == undefined) {
+                    message.reply(`there is no song to skip!`)
+                } else {
+                    this.songQueue.shift();
+                    //check channel and perms, return voicechannel for later connection
+                    let voiceChannel = await this.reqCheck(message)
+                    if (!voiceChannel) break;
+                    var connection = await voiceChannel.join();
+                    await this.play(message, voiceChannel, connection);
+                }
+                break;
+            case 'shuffle':
+                //shuffle the queue
+                if (this.songQueue[2] == undefined) {
+                    message.channel.send("there are not enough songs for a shuffle")
+                } else {
+                    const nowPlaying = this.songQueue.shift();
+                    let shuffleQueue = this.songQueue;
+                    this.songQueue = [];
+                    this.songQueue.push(nowPlaying);
+                    //Randomize the songs in the shuffleArray 
+                    for (let i = shuffleQueue.length - 1; i > 0; i--) {
+                        let j = Math.floor(Math.random() * (i + 1));
+                        [shuffleQueue[i], shuffleQueue[j]] = [shuffleQueue[j], shuffleQueue[i]];
+                    }
+                    for (let i = 0; i < shuffleQueue.length; i++) {
+                        this.songQueue.push(shuffleQueue[i]);
+                    }
+                    console.log(this.songQueue);
+                    message.channel.send('\:ok_hand: shuffled queue')
+                }
+                break;
+            case 'playlistsongdelete': case 'psd':
+                let deletePlaylist = args.shift().toLowerCase();
+                let deleteSongUrl = args.join(' ')
+                if (!deletePlaylist.startsWith(playlistPrefix)) {
+                    message.channel.send(`please enter a playlist with prefix \`${playlistPrefix}\``)
+                    break;
+                };
+                console.log(deleteSongUrl);
+                console.log(deletePlaylist)
+                deletePlaylist = deletePlaylist.substr(playlistPrefix.length);
+                //get the target document info  
+                const delSongInfo = await playlistSongTable.findOne({ where: { songUrl: deleteSongUrl, playlist: deletePlaylist } });
+                if (delSongInfo) {
+                    //if target document found, delete it and return delete information
+                    const rowCount = await playlistSongTable.destroy({ where: { songUrl: deleteSongUrl, playlist: deletePlaylist } });
+                    message.channel.send(`deleted ${delSongInfo.songName} in playlist ${playlistPrefix}${delSongInfo.playlist}`);
+                }
+                else {
+                    message.reply("can't find the song/playlist");
+                    break;
+                }
+                break;
             default:
         }
     },
@@ -413,7 +461,6 @@ module.exports = {
             },
             songDescription: {
                 type: Sequelize.STRING,
-                allowNull: false,
                 unique: false
             },
             playlist: {

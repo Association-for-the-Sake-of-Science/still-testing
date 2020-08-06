@@ -24,7 +24,7 @@ const cooldown = new Discord.Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
 //log the console log into a .txt file. 'a' means appending (old data will be preserved)
-const consoleLog = new console.Console(fs.createWriteStream('./log/logoutput.txt',{flags: 'a' }));
+const consoleLog = new console.Console(fs.createWriteStream('./log/logoutput.txt', { flags: 'a' }));
 consoleLog.log(`/*---------New Console Log startet at ${new Date()}---------*/`);
 
 /*########_Boot_#########*/
@@ -56,13 +56,12 @@ Still_testing.once('ready', () => {
     //hellochannel.send(helloMessage);
 
     //Send hello message to all servers 
-    const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
+    /*const allhelloserver = Still_testing.guilds.cache.map(guild => guild);
         for(helloguild of allhelloserver){
         if(helloguild.systemChannel != undefined){
         helloguild.systemChannel.send(helloMessage);
         }
-      }
-
+      }*/
     //set activity
     Still_testing.user.setActivity(activityMessage);
 
@@ -84,7 +83,7 @@ const shutupcheck = Still_testing.commands.get('shutup');
 
 //Listening Message 
 Still_testing.on('message', async message => {
-/*-----------------------------DirectReaction-----------------------------*/
+    /*-----------------------------DirectReaction-----------------------------*/
     //check if the command comes from the bot
     if (message.author.id == bot_id) { return };
 

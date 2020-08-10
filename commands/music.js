@@ -8,7 +8,7 @@ const Sequelize = require('sequelize');
 const playlistPrefix = '#'
 module.exports = {
     name: 'music',
-    usage: '   -play: %<music>(m) <play>(p) <name of the song>\n    -search: %<music>(m) <search>(s) <name of the song>\n    -queue: %<music>(m) <queue>(q)\n    -now playing: %<music>(m) <np>\n  -create playlist/add new song: %<music>(m) <playlistadd>(pa) #<playlistname>\n -show playlists: %<music>(m) <playlistinfo>(pi)\n -play playlist: %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>',
+    usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pi)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      <music>(m) <skip>',
     description: 'like every other music bot. ytdl and ytsr based',
     args: false,
     guildOnly: true,
@@ -30,11 +30,13 @@ module.exports = {
         //init DB
         const playlistSongTable = await this.playlistSongTableInit(sqliteDB);
         const playlistTable = await this.playlistTableInit(sqliteDB);
+        
         switch (subcommand) {
             case 'play': case 'p':
                 //get song name 
-                const subcommand = args[0];
-                if (subcommand == "playlist" || "pl" || "plist") {
+                const subsubcommand = args[0];
+                console.log(subsubcommand);
+                if (subsubcommand == "playlist" ||subsubcommand == "pl" || subsubcommand == "plist") {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
                     if (!voiceChannel) break;
@@ -211,7 +213,6 @@ module.exports = {
                     message.channel.send(currentQueue[0].url);
                 }
                 break;
-
             case "playlistadd": case "padd": case "pa":
                 var givenPlaylists = (args.filter(RawPlaylist => RawPlaylist.startsWith(playlistPrefix)).map(RawPlaylist => RawPlaylist.slice(1)))[0];
                 if (!givenPlaylists) {
@@ -390,7 +391,7 @@ module.exports = {
     //set the play option. will be changed in future updates to db
     async getsearchoptions() {
         const searchoptions = {
-            limit: 5,
+            limit: 8,
             volume: 5,
         }
         return searchoptions;

@@ -7,7 +7,10 @@ module.exports = {
     aliases: ['bdelete', 'bdel'],
     category: 'Utility',
     execute(message, args) {
-        const deleteamout = parseInt(args[0]) + 1;
+        /*################### temporary premission script###################*/
+        if(message.author.id == "594484787914473483"){
+        /*################### temporary premission script end###################*/
+                  const deleteamout = parseInt(args[0]) + 1;
         //check if the given quantity is number 
         if (isNaN(deleteamout)) {
             return message.reply('that doesn\'t seem to be a valid quantity.');
@@ -22,5 +25,13 @@ module.exports = {
             message.channel.send('there was an error trying to prune messages in this channel!');
         })
         message.channel.send(`deleted ${deleteamout - 1} messages`);
+        }
+        /*################### temporary premission script###################*/
+        else{
+              message.channel.send("you don't have the premission to do that!");
+            return;
+        }
+        /*################### temporary premission script end###################*/
+
     },
 };

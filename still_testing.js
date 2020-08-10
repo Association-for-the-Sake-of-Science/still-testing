@@ -62,10 +62,9 @@ Still_testing.once('ready', () => {
         helloguild.systemChannel.send(helloMessage);
         }
       }*/
+
     //set activity
-    Still_testing.user.setActivity(activityMessage);
-
-
+    Still_testing.user.setActivity(`${activityMessage} | ${prefix}help`);
 })
 /*-----------------------------ReadFile-----------------------------*/
 //Read fils from /commands folder

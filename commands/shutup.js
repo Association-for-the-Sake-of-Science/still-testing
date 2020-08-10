@@ -17,6 +17,12 @@ module.exports = {
 
 
 	async execute(message, args) {
+        /*################### temporary premission script###################*/
+		if(message.author.id !== "594484787914473483"){
+			message.channel.send("you don't have the premission to do that!");
+            return;
+		}
+        /*################### temporary premission script end###################*/
 		if (typeof activestate == 'undefined') {
 			 Shutuplist = [];
 			//create an activestate 

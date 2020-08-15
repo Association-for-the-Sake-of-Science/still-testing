@@ -10,6 +10,10 @@ still testing is a discord bot that still need some testing.
   - a half usable file storage system using sqlite with search function
   - music function like every other bots 
   - a dozen of other useless commands 
+  
+# Upcomming:
+
+  - an artificial idiot
 
 This bot is:
   - full with descriptions 

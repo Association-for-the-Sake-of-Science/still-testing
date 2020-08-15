@@ -21,3 +21,5 @@ This bot is:
   - maby stupid 
 
 > MORE TESTING..............  :D
+
+Contact Email: zhangyichen380@gmail.com

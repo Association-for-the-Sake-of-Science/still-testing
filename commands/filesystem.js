@@ -48,7 +48,7 @@ module.exports = {
                     });
                 console.log(`AskDescriptionAnswer:${description}`)
                 //ask for Tags
-                await message.channel.send(`description set !\n maby add some tags for better tracking?`)
+                await message.channel.send(`description set !\n maybe add some tags for better tracking?`)
                 //await user enter tags 
                 const Tags = await message.channel.awaitMessages(response => response.author.id === message.author.id, { max: 1 })
                     .then(collected => {
@@ -118,7 +118,11 @@ module.exports = {
                 //get brief information from target document and send it
                 const info = await documentTable.findOne({ where: { messageId: infoDocId } });
                 if (info) {
-                    return message.channel.send(`Information about ${info.documentName} with ID ${info.messageId}:\n Uploaded by <@${info.uploaderId}> at ${info.createdAt}.\n File type: ${info.documentType} \n Description: ${info.documentDescription}\n link:${info.documentLink} `);
+                    message.channel.send(`Information about ${info.documentName} with ID ${info.messageId}:\n Uploaded by <@${info.uploaderId}> at ${info.createdAt}.\n File type: ${info.documentType} \n Description: ${info.documentDescription}`);
+                    const dsAttachment = new Discord.MessageAttachment(info.documentLink);
+                    await message.channel.send(dsAttachment)
+                    return 
+                    
                 }
                 break;
             case 'search':
@@ -134,7 +138,6 @@ module.exports = {
                         console.log(documentIdString)
                         for (let e = 0; e < documentIdString.length; e++) {
                             const documents = await documentTable.findOne({ where: { messageId: documentIdString[e] } });
-                            console.log(documents)
                             const dsAttachment = new Discord.MessageAttachment(documents.get('documentLink'));
                             await message.reply(`Tag detected! Search results:\n Rank: ${e}\n Description: ${documents.get('documentDescription')}\n File type: ${documents.get('documentType')} \n #${searchTag[i]}`);
                             await message.channel.send(dsAttachment);

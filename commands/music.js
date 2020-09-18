@@ -6,9 +6,11 @@ const ytsr = require('ytsr');
 const Sequelize = require('sequelize');
 //Define prefix of Playlist
 const playlistPrefix = '#'
+//Load Operators from sequelize 
+const Op = Sequelize.Op;
 module.exports = {
     name: 'music',
-    usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pi)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      <music>(m) <skip>',
+    usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pli)  (or #<playlistName> for more Information)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      %<music>(m) <skip>\n    -**delete song in playlist**:\n      %<music>(m) <playlistsongdelete>(psd) #<playlistName> <songName>',
     description: 'like every other music bot. ytdl and ytsr based',
     args: false,
     guildOnly: true,
@@ -30,13 +32,13 @@ module.exports = {
         //init DB
         const playlistSongTable = await this.playlistSongTableInit(sqliteDB);
         const playlistTable = await this.playlistTableInit(sqliteDB);
-        
+
         switch (subcommand) {
             case 'play': case 'p':
                 //get song name 
                 const subsubcommand = args[0];
                 console.log(subsubcommand);
-                if (subsubcommand == "playlist" ||subsubcommand == "pl" || subsubcommand == "plist") {
+                if (subsubcommand == "playlist" || subsubcommand == "pl" || subsubcommand == "plist") {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
                     if (!voiceChannel) break;
@@ -296,23 +298,41 @@ module.exports = {
                 }
                 break;
             case 'playlistinfo': case 'playlisti': case 'pli':
-                let playlist = args.shift.toLowerCase
+                let Playlist = (args.filter(RawPlaylist => RawPlaylist.startsWith(playlistPrefix)).map(RawPlaylist => RawPlaylist.slice(1)))[0];
                 const data = [];
-                data.push(`Songs:`)
-                //get all id of uploaded documents into an array 
-                const songList = await playlistSongTable.findAll({ attributes: ['songName'] });
-                const songArray = songList.map(t => t.songName)
-                console.log(songArray);
-                if (songArray.length) {
-                    for (var i = 0; songArray[i] !== undefined; i++) {
-                        const song = await playlistSongTable.findOne({ where: { songName: songArray[i] } });
-                        //get brief inforOnemation from each document
-                        data.push(`- Name :${song.songName}     ${song.songDuration}    in Playlist ${playlistPrefix}${song.playlist}.`)
-                    };
-                    //send the retrived info
-                    message.channel.send(data);
+                console.log(Playlist);
+                if (Playlist == undefined) {
+                    const playlistList = await playlistTable.findAll({ attributes: ['playlist'] });
+                    const playlistArray = playlistList.map(t => t.playlist);
+                    if (playlistArray.length) {
+                        for (var i = 0; playlistArray[i] !== undefined; i++) {
+                            const playlistListTable = await playlistTable.findOne({ where: { playlist: playlistArray[i] } });
+                            data.push(`- Playlist :\`${playlistPrefix}${playlistListTable.playlist}\`\n   Description:  ${playlistListTable.playlistDescription}.`)
+                        };
+                        //send the retrived info
+                        console.log(data);
+                        message.channel.send(data);
+                    } else {
+                        message.channel.send('there is currently no songs in any playlist.');
+                    }
                 } else {
-                    message.channel.send('there is currently no songs in any playlist.');
+                    data.push(`Songs in playlist\`${playlistPrefix}${Playlist}\`:`)
+                    //get all id of uploaded documents into an array 
+                    const songList = await playlistSongTable.findAll({ where: { playlist: Playlist } });
+                    const songArray = songList.map(t => t.songName)
+                    console.log(songArray);
+                    if (songArray.length) {
+                        for (var i = 0; songArray[i] !== undefined; i++) {
+                            const song = await playlistSongTable.findOne({ where: { songName: songArray[i] } });
+                            //get brief inforOnemation from each document
+                            data.push(`-${song.songName}  \*${song.songDuration}\*`)
+                        };
+                        //send the retrived info
+                        console.log(data);
+                        message.channel.send(data);
+                    } else {
+                        message.channel.send('QAQ can\'t find the Playlist');
+                    }
                 }
                 break;
             case 'skip':
@@ -350,19 +370,24 @@ module.exports = {
                 break;
             case 'playlistsongdelete': case 'psd':
                 let deletePlaylist = args.shift().toLowerCase();
-                let deleteSongUrl = args.join(' ')
+                let deleteSongName = args.join(' ')
                 if (!deletePlaylist.startsWith(playlistPrefix)) {
                     message.channel.send(`please enter a playlist with prefix \`${playlistPrefix}\``)
                     break;
                 };
-                console.log(deleteSongUrl);
-                console.log(deletePlaylist)
                 deletePlaylist = deletePlaylist.substr(playlistPrefix.length);
                 //get the target document info  
-                const delSongInfo = await playlistSongTable.findOne({ where: { songUrl: deleteSongUrl, playlist: deletePlaylist } });
+                const delSongInfo = await playlistSongTable.findOne({ 
+                    where: {
+                        [Op.or]: [
+                            {songName: { [Op.like]: deleteSongName } },
+                            {playlist: deletePlaylist },]
+                        }
+                    });
+                    console.log(delSongInfo);
                 if (delSongInfo) {
                     //if target document found, delete it and return delete information
-                    const rowCount = await playlistSongTable.destroy({ where: { songUrl: deleteSongUrl, playlist: deletePlaylist } });
+                    const rowCount = await playlistSongTable.destroy({ where: { songName: delSongInfo.songName, playlist: delSongInfo.playlist } });
                     message.channel.send(`deleted ${delSongInfo.songName} in playlist ${playlistPrefix}${delSongInfo.playlist}`);
                 }
                 else {

@@ -1,7 +1,13 @@
 //Load node ytdl-core(you-tube-down-loader) Npmjs :https://www.npmjs.com/package/ytdl-core
 const ytdl = require('ytdl-core-discord');
+
+/*#######################YTSR Temporary Malfunction caused by Youtube Infrastructure change#######################*/
 //Load ytsr(you-tube-search-result). Npmjs :https://www.npmjs.com/package/ytsr
-const ytsr = require('ytsr');
+/*const ytsr = require('ytsr');*/
+
+//Load YouTube Search. Npmjs :https://www.npmjs.com/package/youtube-sr
+const ytsr = require('youtube-sr');
+
 //using ffmpeg from https://www.ffmpeg.org/
 const Sequelize = require('sequelize');
 //Define prefix of Playlist
@@ -11,7 +17,7 @@ const Op = Sequelize.Op;
 module.exports = {
     name: 'music',
     usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pli)  (or #<playlistName> for more Information)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      %<music>(m) <skip>\n    -**delete song in playlist**:\n      %<music>(m) <playlistsongdelete>(psd) #<playlistName> <songName>',
-    description: 'like every other music bot. ytdl and ytsr based',
+    description: 'like every other music bot. ytdl and ytsr based ###Temporary switch to youtube-sr becaus of Youtube change###',
     args: false,
     guildOnly: true,
     aliases: ['m'],
@@ -37,7 +43,6 @@ module.exports = {
             case 'play': case 'p':
                 //get song name 
                 const subsubcommand = args[0];
-                console.log(subsubcommand);
                 if (subsubcommand == "playlist" || subsubcommand == "pl" || subsubcommand == "plist") {
                     //check channel and perms, return voicechannel for later connection
                     let voiceChannel = await this.reqCheck(message)
@@ -96,7 +101,7 @@ module.exports = {
                         //get ytsr search results 
                         let searchResult = await this.searchyt(message, playArgument, false)
                         //get the info of the song
-                        var songInfo = { url: searchResult.items[0].link, title: searchResult.items[0].title, duration: searchResult.items[0].duration };
+                        var songInfo = { url: searchResult[0].id, title: searchResult[0].title, duration: searchResult[0].durationFormatted };
                         this.songQueue.push(songInfo)
                         //if there is no music in the queue, play the song. Else queue the song
                         if (this.songQueue[1] == undefined) {
@@ -166,7 +171,8 @@ module.exports = {
                     //check if user canceled the search 
                     if (Userchoice == "cancel") break;
                     //set the song info
-                    var songInfo = { url: searchResult.items[Userchoice - 1].link, title: searchResult.items[Userchoice - 1].title, duration: searchResult.items[Userchoice - 1].duration };
+                    var songInfo = { url: searchResult[Userchoice - 1].id, title: searchResult[Userchoice - 1].title, duration: searchResult[Userchoice - 1].durationFormatted };
+                    console.log(songInfo);
                     this.songQueue.push(songInfo)
                     //if there is no music in the queue, play the song. Else queue the song
                     console.log(this.songQueue);
@@ -292,7 +298,7 @@ module.exports = {
                     //check if user canceled the search 
                     if (Userchoice !== "cancel") {
                         //set the song info
-                        const psongInfo = searchResult.items[Userchoice - 1];
+                        const psongInfo = searchResult[Userchoice - 1];
                         await this.newPlaylistSong(message, playlistSongTable, givenPlaylists, psongInfo)
                     }
                 }
@@ -300,7 +306,6 @@ module.exports = {
             case 'playlistinfo': case 'playlisti': case 'pli':
                 let Playlist = (args.filter(RawPlaylist => RawPlaylist.startsWith(playlistPrefix)).map(RawPlaylist => RawPlaylist.slice(1)))[0];
                 const data = [];
-                console.log(Playlist);
                 if (Playlist == undefined) {
                     const playlistList = await playlistTable.findAll({ attributes: ['playlist'] });
                     const playlistArray = playlistList.map(t => t.playlist);
@@ -364,7 +369,6 @@ module.exports = {
                     for (let i = 0; i < shuffleQueue.length; i++) {
                         this.songQueue.push(shuffleQueue[i]);
                     }
-                    console.log(this.songQueue);
                     message.channel.send('\:ok_hand: shuffled queue')
                 }
                 break;
@@ -377,14 +381,13 @@ module.exports = {
                 };
                 deletePlaylist = deletePlaylist.substr(playlistPrefix.length);
                 //get the target document info  
-                const delSongInfo = await playlistSongTable.findOne({ 
+                const delSongInfo = await playlistSongTable.findOne({
                     where: {
                         [Op.or]: [
-                            {songName: { [Op.like]: deleteSongName } },
-                            {playlist: deletePlaylist },]
-                        }
-                    });
-                    console.log(delSongInfo);
+                            { songName: { [Op.like]: deleteSongName } },
+                            { playlist: deletePlaylist },]
+                    }
+                });
                 if (delSongInfo) {
                     //if target document found, delete it and return delete information
                     const rowCount = await playlistSongTable.destroy({ where: { songName: delSongInfo.songName, playlist: delSongInfo.playlist } });
@@ -394,6 +397,21 @@ module.exports = {
                     message.reply("can't find the song/playlist");
                     break;
                 }
+                break;
+            case 'playlistdelete': case 'pd':
+                const delPlaylist = (args.filter(RawPlaylist => RawPlaylist.startsWith(playlistPrefix)).map(RawPlaylist => RawPlaylist.slice(1)))[0];
+                console.log(delPlaylist);
+                const delPlaylistInfo = await playlistTable.findOne({ where: { playlist: delPlaylist } });
+                if (delPlaylistInfo) {
+                    //if target document found, delete it and return delete information
+                    const rowCount = await playlistTable.destroy({ where: { playlist: delPlaylistInfo.playlist } });
+                    console.log(rowCount);
+                    message.channel.send(`deleted playlist: \`${playlistPrefix}${delPlaylistInfo.playlist}\``);
+                }
+                else {
+                    message.reply("can't find the song/playlist");
+                    break;
+                };
                 break;
             default:
         }
@@ -424,20 +442,25 @@ module.exports = {
     //search given song name or whatever in youtube using ytsr 
     async searchyt(message, playArgument, state) {
         var options = await this.getsearchoptions();
-        console.log(options);
         const limit = options.limit;
-        const searchResult = await ytsr(playArgument, options).catch(err => { console.log(err); })
-        console.log(searchResult);
+
+        //Temporary Switched to Youtube-sr
+        const searchResult = await ytsr.search(playArgument, { limit: limit }).catch(err => { console.log(err); });
+
         const data = [];
+        console.log(searchResult);
+        console.log(typeof searchResult);
+        console.log(searchResult[0].title);
         //check if need to list all the songs  
         if (state == true) {
             data.push(`**Search results:**\n`);
             for (let i = 0; i < limit; i++) {
                 const num = i + 1;
-                data.push(`\`${num}\`.  -  ${searchResult.items[i].title}  [${searchResult.items[i].duration}]`);
+                data.push(`\`${num}\`.  -  ${searchResult[i].title}  [${searchResult[i].durationFormatted}]`);
             }
             data.push('\nType a number to chose a song, Type \`cancel\` to exit')
         }
+        console.log(data);
         message.channel.send(data)
         return searchResult;
     },
@@ -549,10 +572,12 @@ module.exports = {
     async newPlaylistSong(message, playlistSongTable, playlistName, songInfo) {
         const ifalready = await playlistSongTable.findOne({ where: { songName: songInfo.title, playlist: playlistName } });
         if (!ifalready) {
+            //Quick & dirty solution for formatting
+            const SongUrl = ('https://www.youtube.com/watch?v=' + songInfo.id )
             const newSong = await playlistSongTable.create({
                 songName: songInfo.title,
-                songUrl: songInfo.link,
-                songDuration: songInfo.duration,
+                songUrl: SongUrl,
+                songDuration: songInfo.durationFormatted,
                 songDescription: songInfo.description,
                 playlist: playlistName,
             }).catch(err => {

@@ -8,7 +8,7 @@ const fs = require('fs');
 const Sequelize = require('sequelize');
 
 //Load configuration +
-const { prefix, bot_secret_token, bot_id, helloserverid, hellochannelid, helloMessage, activityMessage } = require('./config.json');
+const { prefix, bot_secret_token, bot_id, helloserverid, hellochannelid, version, activityMessage } = require('./config.json');
 const { error } = require('console');
 
 //create Still Testing Discord client 
@@ -49,6 +49,7 @@ const tempMemory = new Sequelize('sqlite::memory:');
 Still_testing.once('ready', () => {
     //display connect status in 
     console.log("Connected as " + Still_testing.user.tag)
+    console.log("Bot Version:" + version)
     const helloserver = Still_testing.guilds.cache.get(helloserverid)
     const hellochannel = helloserver.channels.cache.get(hellochannelid);
 

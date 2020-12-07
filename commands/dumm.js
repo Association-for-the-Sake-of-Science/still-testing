@@ -1,5 +1,5 @@
 //Load node ytdl-core(you-tube-down-loader) Npmjs :https://www.npmjs.com/package/ytdl-core
-const ytdl = require('ytdl-core-discord');
+const ytdl = require('ytdl-core');
 //Load ytsr(you-tube-search-result). Npmjs :https://www.npmjs.com/package/ytsr
 const ytsr = require('ytsr');
 //using ffmpeg from https://www.ffmpeg.org/

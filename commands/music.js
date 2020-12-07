@@ -1,5 +1,5 @@
 //Load node ytdl-core(you-tube-down-loader) Npmjs :https://www.npmjs.com/package/ytdl-core
-const ytdl = require('ytdl-core-discord');
+const ytdl = require('ytdl-core');
 
 /*#######################YTSR Temporary Malfunction caused by Youtube Infrastructure change#######################*/
 //Load ytsr(you-tube-search-result). Npmjs :https://www.npmjs.com/package/ytsr
@@ -172,7 +172,6 @@ module.exports = {
                     if (Userchoice == "cancel") break;
                     //set the song info
                     var songInfo = { url: searchResult[Userchoice - 1].id, title: searchResult[Userchoice - 1].title, duration: searchResult[Userchoice - 1].durationFormatted };
-                    console.log(songInfo);
                     this.songQueue.push(songInfo)
                     //if there is no music in the queue, play the song. Else queue the song
                     console.log(this.songQueue);
@@ -446,11 +445,7 @@ module.exports = {
 
         //Temporary Switched to Youtube-sr
         const searchResult = await ytsr.search(playArgument, { limit: limit }).catch(err => { console.log(err); });
-
         const data = [];
-        console.log(searchResult);
-        console.log(typeof searchResult);
-        console.log(searchResult[0].title);
         //check if need to list all the songs  
         if (state == true) {
             data.push(`**Search results:**\n`);
@@ -458,10 +453,10 @@ module.exports = {
                 const num = i + 1;
                 data.push(`\`${num}\`.  -  ${searchResult[i].title}  [${searchResult[i].durationFormatted}]`);
             }
-            data.push('\nType a number to chose a song, Type \`cancel\` to exit')
+            data.push('\nType a number to chose a song, Type \`cancel\` to exit');
+            message.channel.send(data);
         }
-        console.log(data);
-        message.channel.send(data)
+        
         return searchResult;
     },
     //play the song using ytdl
@@ -474,8 +469,8 @@ module.exports = {
         try {
             //get the first song in the queue and play it
             songPlay = this.songQueue[0];
-            let stream = await ytdl(songPlay.url, { filter: 'audioonly', highWaterMark: 1 << 25 });
-            let dispatcher = await connection.play(stream, { type: 'opus' })
+            let stream = await ytdl(songPlay.url, {filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1<<25});
+            let dispatcher = await connection.play(stream);
             dispatcher
                 .on("finish", () => {
                     //play the next song when the song finished playing 
@@ -487,6 +482,7 @@ module.exports = {
                     message.channel.send("....");
                 })
             message.channel.send(`now playing \:notes: \`${songPlay.title}\``)
+            console.log(`playing: ${songPlay.title}`)
             dispatcher.setVolumeLogarithmic(1);
         }
         catch (err) {

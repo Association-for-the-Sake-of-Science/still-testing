@@ -24,7 +24,7 @@ module.exports = {
         try {
             var connection = await voiceChannel.join();
             let stream = await ytdl('https://www.youtube.com/watch?v=UL3-Wa14Zp0', { filter: 'audioonly', highWaterMark: 1 << 25 });
-            let dispatcher = await connection.play(stream, { type: 'opus' })
+            let dispatcher = await connection.play(stream);
             dispatcher.on("finish", () => {
                 voiceChannel.leave();
               })

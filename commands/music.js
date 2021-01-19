@@ -16,7 +16,7 @@ const playlistPrefix = '#'
 const Op = Sequelize.Op;
 module.exports = {
     name: 'music',
-    usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pli)  (or #<playlistName> for more Information)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      %<music>(m) <skip>\n    -**delete song in playlist**:\n      %<music>(m) <playlistsongdelete>(psd) #<playlistName> <songName>',
+    usage: '\n    -**play**:\n      %<music>(m) <play>(p) <name of the song>\n    -**search**:\n      %<music>(m) <search>(s) <name of the song>\n    -**queue**:\n      %<music>(m) <queue>(q)\n    -**now playing**:\n      %<music>(m) <np>\n    -**create playlist/add new song**:\n      %<music>(m) <playlistadd>(pa) #<playlistname>\n    -**show playlists**:\n      %<music>(m) <playlistinfo>(pli)  (or #<playlistName> for more Information)\n    -**play playlist**:\n      %<music>(m) <play>(p) <playlist>(pl) #<[targetplaylist]>\n    -**skip song**:\n      %<music>(m) <skip>\n    -**delete song in playlist**:\n      %<music>(m) <playlistsongdelete>(psd) #<playlistName> <songid> (get id using playlistsonginfo command)',
     description: 'like every other music bot. ytdl and ytsr based ###Temporary switch to youtube-sr becaus of Youtube change###',
     args: false,
     guildOnly: true,
@@ -311,7 +311,7 @@ module.exports = {
                     if (playlistArray.length) {
                         for (var i = 0; playlistArray[i] !== undefined; i++) {
                             const playlistListTable = await playlistTable.findOne({ where: { playlist: playlistArray[i] } });
-                            data.push(`- Playlist :\`${playlistPrefix}${playlistListTable.playlist}\`\n   Description:  ${playlistListTable.playlistDescription}.`)
+                            data.push(`- Playlist :\`${playlistPrefix}${playlistListTable.playlist}\`\n   Description:  ${playlistListTable.playlistDescription}`)
                         };
                         //send the retrived info
                         console.log(data);
@@ -329,7 +329,7 @@ module.exports = {
                         for (var i = 0; songArray[i] !== undefined; i++) {
                             const song = await playlistSongTable.findOne({ where: { songName: songArray[i] } });
                             //get brief inforOnemation from each document
-                            data.push(`-${song.songName}  \*${song.songDuration}\*`)
+                            data.push(`-${song.songName}  \*${song.songDuration}\*  id:  ${song.id}.`)
                         };
                         //send the retrived info
                         console.log(data);
@@ -373,22 +373,21 @@ module.exports = {
                 break;
             case 'playlistsongdelete': case 'psd':
                 let deletePlaylist = args.shift().toLowerCase();
-                let deleteSongName = args.join(' ')
+                let deleteSongId = args.join(' ')
                 if (!deletePlaylist.startsWith(playlistPrefix)) {
                     message.channel.send(`please enter a playlist with prefix \`${playlistPrefix}\``)
                     break;
                 };
                 deletePlaylist = deletePlaylist.substr(playlistPrefix.length);
-                //get the target document info  
+                //get the target song info  
                 const delSongInfo = await playlistSongTable.findOne({
                     where: {
-                        [Op.or]: [
-                            { songName: { [Op.like]: deleteSongName } },
-                            { playlist: deletePlaylist },]
+                            id: deleteSongId,
+                            playlist: deletePlaylist
                     }
                 });
                 if (delSongInfo) {
-                    //if target document found, delete it and return delete information
+                    //if target sonf is found, delete it and return delete information 
                     const rowCount = await playlistSongTable.destroy({ where: { songName: delSongInfo.songName, playlist: delSongInfo.playlist } });
                     message.channel.send(`deleted ${delSongInfo.songName} in playlist ${playlistPrefix}${delSongInfo.playlist}`);
                 }
